@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 
 @Configuration
@@ -34,21 +35,34 @@ public class InMemorySecurityConfig {
         UserDetails manager=User.builder().username("emp2").roles("manager","user").password(passwordEncoder.encode("emp2_")).build();
 
         /*this below function will first clone the manager user details then overwrite the existing fields like roles ,passswords ,username */
-        UserDetails admin=User.withUserDetails(manager).roles("admin","manager","user").username("emp3").password(passwordEncoder.encode("emp3_")).build();
+        UserDetails admin=User.withUserDetails(manager).username("emp3").roles("admin","manager","user").password(passwordEncoder.encode("emp3_")).build();
         return new InMemoryUserDetailsManager(user,manager,admin);
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity)throws Exception{
-        httpSecurity.authorizeHttpRequests(request->request.requestMatchers("/","/login","/css/**","/js/**").permitAll()
-        .requestMatchers("/admin/**").hasRole("admin")
-        .requestMatchers("/manager/**").hasAnyRole("admin","manager")
-        .requestMatchers("/user/**").hasAnyRole("admin","manager","user")
-        .anyRequest().authenticated()
-        )
-        .formLogin(form->form.loginPage("/login").defaultSuccessUrl("/",true).permitAll())
-        .logout(form->form.logoutSuccessUrl("/login?logout").permitAll()
-        );
+        // httpSecurity.authorizeHttpRequests(request->request.requestMatchers("/","/login","/css/**","/js/**").permitAll()
+        // .requestMatchers("/admin/**").hasRole("admin")
+        // .requestMatchers("/manager/**").hasAnyRole("admin","manager")
+        // .requestMatchers("/user/**").hasAnyRole("admin","manager","user")
+        // .anyRequest().authenticated()
+        // )
+        // .formLogin(form->form.loginPage("/login").defaultSuccessUrl("/",true).permitAll())
+        // .logout(form->form.logoutSuccessUrl("/login?logout").permitAll()
+        // );
+        // return httpSecurity.build();
+
+
+
+        httpSecurity.authorizeHttpRequests(request->request.requestMatchers("/login","/css/**","/js/**").permitAll()
+        .requestMatchers("/home","/service/**").hasAnyRole("user","admin","manager")
+        .requestMatchers("/configuration/**").hasAnyRole("admin","manager")
+        .requestMatchers("officeFiles/**").hasRole("admin")
+        .requestMatchers("/onlyManager/**").hasRole("manager")
+        .requestMatchers("/onlyUser/**").hasRole("user")
+        .anyRequest().authenticated())
+        .formLogin(form->form.defaultSuccessUrl("/home", true).permitAll())
+        .logout(form->form.logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET")).permitAll());
         return httpSecurity.build();
     }
 
